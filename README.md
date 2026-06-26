@@ -212,7 +212,7 @@ MIT — see [LICENSE](LICENSE).
 - [Navidrome](https://github.com/navidrome/navidrome) — the music server
 - [slskd](https://github.com/slskd/slskd) — the Soulseek client
 - [Tailscale](https://tailscale.com/) — the VPN
-- [PicoClaw](https://github.com/nicobailon/picoclaw) — the AI assistant framework
+- [PicoClaw](https://github.com/sipeed/picoclaw) — the AI assistant framework
 - [Venice.ai](https://venice.ai/) — the LLM inference provider
 - [Symfonium](https://symfonium.app/) — the Subsonic client for Android
 - [Subsonic API](https://www.subsonic.org/pages/api.jsp) — the streaming protocol standard
