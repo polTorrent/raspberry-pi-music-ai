@@ -244,6 +244,38 @@ PicoClaw supports scheduled tasks. Example:
 
 These are configured through PicoClaw's cron system (not system crontab).
 
+## Step 11: Connect a Music Client (Symfonium)
+
+Now that Navidrome is running, you need a client app to actually listen to your music. Navidrome implements the Subsonic API, so any compatible client works.
+
+### Recommended: Symfonium (Android)
+
+1. Install [Symfonium](https://symfonium.app/) from the Play Store
+2. Open the app → **Settings** → **Servers** → **Add server**
+3. Configure:
+   - **Server type**: Subsonic / Navidrome
+   - **Server URL**: `http://<pi-ip>:4533` (LAN) or `http://<tailscale-ip>:4533` (remote)
+   - **Username**: your Navidrome username
+   - **Password**: your Navidrome password
+4. Tap **Test connection** → should show "OK"
+5. Symfonium will scan and index your library
+
+Key features to enable:
+- **Offline mode**: Pin albums for offline playback (downloads to phone storage)
+- **Transcoding**: Set preferred format/quality for streaming over mobile data
+- **Scrobbling**: Enabled by default — play counts sync back to Navidrome
+
+### Other clients
+
+| Client | Platform | Notes |
+|---|---|---|
+| DSub | Android | Free, open-source |
+| Tempo | iOS | Modern, actively maintained |
+| Feishin | Desktop (Electron) | Cross-platform |
+| Jamstash | Web | Browser-based, no install needed |
+
+> **Remote access**: Install Tailscale on your phone too. Connect to the Pi's Tailscale IP and your music streams securely from anywhere — no port forwarding needed.
+
 ## Post-Setup Checklist
 
 - [ ] External drive auto-mounts on reboot (test with `sudo reboot`)
@@ -254,6 +286,8 @@ These are configured through PicoClaw's cron system (not system crontab).
 - [ ] Music library is organized in `Artist/Album` structure
 - [ ] slskd API key is set for the Soulseek skill
 - [ ] Telegram bot is restricted to your chat ID only
+- [ ] Symfonium (or other Subsonic client) connects and plays music
+- [ ] Remote playback works via Tailscale IP
 
 ## Troubleshooting
 

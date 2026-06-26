@@ -7,6 +7,7 @@ A self-hosted music server powered by a Raspberry Pi, an AI assistant on Telegra
 This project turns a humble Raspberry Pi into a complete, AI-assisted music ecosystem:
 
 - **🎵 Navidrome** — a self-hosted streaming server (like Spotify, but yours)
+- **📱 Symfonium** — a Subsonic-compatible Android client for streaming your library anywhere
 - **📥 slskd** — a Soulseek client for discovering and downloading music
 - **🤖 PicoClaw** — a lightweight AI assistant (Go) that runs on Telegram, manages the server, searches for music, generates weekly recommendations, and maintains library health
 - **🔐 Tailscale** — zero-config VPN for secure remote access from anywhere
@@ -76,6 +77,7 @@ For a detailed architecture diagram, see [docs/architecture.md](docs/architectur
 | AI assistant | PicoClaw 0.2.x (Go, Telegram bot) |
 | LLM provider | Venice.ai (GLM 5.2) via local proxy |
 | VPN | Tailscale (zero-config WireGuard) |
+| Mobile client | Symfonium (Android, Subsonic API) |
 | Storage | 30 GB microSD (OS) + 1.8 TB USB drive (music, ext4) |
 | Scripting | Python 3.9, Bash |
 
@@ -112,6 +114,53 @@ raspberry-pi-music-ai/
 - 🏗️ [Architecture](docs/architecture.md) — How the pieces fit together
 - 🔌 [Venice Proxy](docs/venice-proxy.md) — The LLM proxy layer explained
 - 🧩 [PicoClaw Skills](docs/picoclaw-skills.md) — The skill pattern and how to write your own
+
+## Subsonic API & Clients
+
+Navidrome implements the [Subsonic API](https://www.subsonic.org/pages/api.jsp) (and [OpenSubsonic](https://opensubsonic.netlify.app/) extensions), so any compatible client can connect. No extra API key is needed — clients authenticate with your Navidrome username + password using the Subsonic salt/token method.
+
+### Recommended: Symfonium (Android)
+
+[Symfonium](https://symfonium.app/) is the most feature-complete Subsonic client for Android:
+
+- **Offline cache**: Download albums for offline playback
+- **Transcoding**: On-the-fly format conversion (e.g., FLAC → MP3) for limited bandwidth
+- **Scrobbling**: Play counts sync back to Navidrome
+- **Gapless playback**: For continuous albums
+- **Material Design UI**: Clean, modern interface
+
+### Other compatible clients
+
+| Client | Platform | Notes |
+|---|---|---|
+| DSub | Android | Classic, open-source |
+| Tempo | iOS | Modern, actively maintained |
+| Feishin | Desktop (Electron) | Cross-platform, full-featured |
+| Jamstash | Web | Browser-based, no install |
+| substreamer | iOS/Android | Solid alternative |
+
+### Connecting a client
+
+1. Open your Subsonic client of choice
+2. Add a new server with these details:
+   - **Server URL (LAN)**: `http://<pi-ip>:4533`
+   - **Server URL (remote)**: `http://<tailscale-ip>:4533`
+   - **Username**: your Navidrome username
+   - **Password**: your Navidrome password
+3. The client will test the connection and start scanning your library
+
+> **Tip**: For remote access, make sure Tailscale is running on both your Pi and your phone/computer. The Subsonic traffic stays encrypted inside the WireGuard tunnel.
+
+### Subsonic API for developers
+
+If you want to build custom integrations, the API is available at:
+```
+http://<pi-ip>:4533/rest/
+```
+Example endpoint:
+```
+GET /rest/search3.view?u=<user>&p=<password>&v=1.16.1&c=myapp&f=json&query=aphex+twin
+```
 
 ## Quick Start
 
@@ -165,3 +214,5 @@ MIT — see [LICENSE](LICENSE).
 - [Tailscale](https://tailscale.com/) — the VPN
 - [PicoClaw](https://github.com/nicobailon/picoclaw) — the AI assistant framework
 - [Venice.ai](https://venice.ai/) — the LLM inference provider
+- [Symfonium](https://symfonium.app/) — the Subsonic client for Android
+- [Subsonic API](https://www.subsonic.org/pages/api.jsp) — the streaming protocol standard

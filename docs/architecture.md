@@ -86,7 +86,23 @@
 │  │  │ Remote      │         │ GLM 5.2 model       │        │           │
 │  │  │ access from │         │ via proxy :8899     │        │           │
 │  │  │ any device  │         │                     │        │           │
-│  │  └─────────────┘         └─────────────────────┘        │           │
+│  │  └──────┬──────┘         └─────────────────────┘        │           │
+│  └─────────┼────────────────────────────────────────────────┘           │
+│            │                                                            │
+│            │ WireGuard tunnel                                          │
+│            ▼                                                            │
+│  ┌──────────────────────────────────────────────────────────┐           │
+│  │                    Client Devices                         │           │
+│  │                                                          │           │
+│  │  ┌─────────────────┐    ┌──────────────┐                │           │
+│  │  │ Symfonium        │    │ Web browser  │                │           │
+│  │  │ (Android)        │    │ (Navidrome   │                │           │
+│  │  │                  │    │  web UI)     │                │           │
+│  │  │ Subsonic API     │    │              │                │           │
+│  │  │ → :4533          │    │ → :4533      │                │           │
+│  │  └─────────────────┘    └──────────────┘                │           │
+│  │                                                          │           │
+│  │  Also compatible: DSub, Tempo, Feishin, Jamstash         │           │
 │  └──────────────────────────────────────────────────────────┘           │
 │                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -134,6 +150,18 @@ Cron (Monday 10:00) → PicoClaw activates music-recommendations skill
   → (optional) user asks to download → Soulseek pipeline
 ```
 
+### 5. Client playback (Symfonium / Subsonic API)
+
+```
+Symfonium (Android) → Tailscale VPN tunnel → Navidrome :4533
+  → Subsonic API /rest/ endpoints
+  → Streams audio (FLAC/MP3, optionally transcoded)
+  → Scrobbles play counts back to Navidrome SQLite DB
+  ← Offline cache (pinned albums stored on phone)
+```
+
+The client never touches the Pi's filesystem directly. All communication goes through the Subsonic API over HTTP, encrypted inside the Tailscale WireGuard tunnel when remote.
+
 ## Component Responsibilities
 
 | Component | Role |
@@ -143,6 +171,8 @@ Cron (Monday 10:00) → PicoClaw activates music-recommendations skill
 | **Navidrome** | Music streaming server. SQLite DB stores scrobbles, ratings, library metadata. Scans every 15 min |
 | **slskd** | Soulseek client. REST API for search/download. Downloads to staging folder |
 | **Tailscale** | VPN. Enables remote access to Navidrome web UI, slskd web UI, and SSH from any device |
+| **Symfonium** | Subsonic client (Android). Streams music from Navidrome, caches offline, scrobbles play counts back. Also the primary listening interface |
+| **Subsonic API** | Standard music streaming protocol. Navidrome implements it natively — any compatible client can connect with user + password, no extra keys |
 | **Skills** | Modular capability extensions. Each skill is a SKILL.md spec + scripts that PicoClaw reads on demand |
 
 ## Security Model
