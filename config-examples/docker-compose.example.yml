@@ -1,0 +1,26 @@
+version: "3"
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    ports:
+      - "4533:4533"
+    environment:
+      ND_SCANSCHEDULE: 15m
+      ND_LOGLEVEL: info
+    volumes:
+      - "./data:/data"
+      - "/path/to/your/music:/music:ro"
+    restart: unless-stopped
+
+  slskd:
+    image: slskd/slskd:latest
+    ports:
+      - "5030:5030"
+      - "5031:5031"
+    environment:
+      SLSKD_REMOTE_CONFIGURATION: "true"
+    volumes:
+      - "./slskd-data:/app"
+      - "/path/to/your/music:/music"
+      - "/path/to/your/downloads:/downloads"
+    restart: unless-stopped

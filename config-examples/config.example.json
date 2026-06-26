@@ -1,0 +1,70 @@
+{
+  "session": {
+    "dimensions": [
+      "chat"
+    ]
+  },
+  "version": 3,
+  "isolation": {},
+  "agents": {
+    "defaults": {
+      "workspace": "/home/USER/.picoclaw/workspace",
+      "restrict_to_workspace": true,
+      "allow_read_outside_workspace": false,
+      "provider": "vllm",
+      "model_name": "venice-glm-5.2",
+      "max_tokens": 32768,
+      "max_tool_iterations": 200,
+      "summarize_message_threshold": 20,
+      "summarize_token_percent": 75,
+      "steering_mode": "one-at-a-time",
+      "subturn": {
+        "max_depth": 0,
+        "max_concurrent": 0,
+        "default_timeout_minutes": 0,
+        "default_token_budget": 0,
+        "concurrency_timeout_sec": 0
+      },
+      "tool_feedback": {
+        "enabled": false,
+        "max_args_length": 300,
+        "separate_messages": false
+      },
+      "split_on_marker": false,
+      "turn_profile": {
+        "enabled": false,
+        "history": {},
+        "system_prompt": {},
+        "skills": {},
+        "tools": {}
+      },
+      "max_llm_retries": 2,
+      "llm_retry_backoff_secs": 2
+    }
+  },
+  "model_list": [
+    {
+      "model_name": "venice-glm-5.2",
+      "provider": "vllm",
+      "api_base": "http://localhost:8899",
+      "model": "your-model-id"
+    }
+  ],
+  "channel_list": {
+    "telegram": {
+      "enabled": true,
+      "allow_from": [YOUR_TELEGRAM_CHAT_ID],
+      "typing": {
+        "enabled": true
+      },
+      "placeholder": {
+        "enabled": true,
+        "text": ["Thinking... 🤔"]
+      }
+    }
+  },
+  "evolution": {
+    "min_task_count": 2,
+    "min_success_ratio": 0.7
+  }
+}

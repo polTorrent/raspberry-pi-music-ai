@@ -1,0 +1,18 @@
+[Unit]
+Description=PicoClaw Gateway
+After=network.target venice-proxy.service
+Wants=venice-proxy.service
+
+[Service]
+Type=simple
+User=pi
+# Set your Telegram bot token here, or use an EnvironmentFile for better security:
+# EnvironmentFile=/etc/picoclaw.env
+Environment="PICOCLAW_CHANNELS_TELEGRAM_TOKEN=your-telegram-bot-token-here"
+ExecStart=/usr/local/bin/picoclaw gateway
+Restart=always
+RestartSec=5
+WorkingDirectory=/home/pi
+
+[Install]
+WantedBy=multi-user.target
