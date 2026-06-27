@@ -218,17 +218,17 @@ Persistent configuration:
 
 ### Library Normalization
 
-A multi-phase normalization approach to clean up the music library:
+The bot can clean up and standardize your music library through these phases:
 
-| Phase | Description | Example |
-|---|---|---|
-| Phase 1 | Delete junk files (.m3u, .log, .cue, .sfv, .bmp, Thumbs.db) | e.g. 250+ files removed |
-| Phase 2 | Reorganize albums to `Artist/YYYY - Album/` format | e.g. 200+ albums moved |
-| Phase 3 | Fix disguised artists, merge duplicates, rename subfolders | e.g. 200+ albums fixed |
-| Phase 4 | Tag audit (artist, album, date, track, title, genre) | Recommended |
-| Phase 5 | Fix tags A–M and N–Z | Recommended |
-| Phase 6 | Embed cover art | Recommended |
-| Phase 7 | Final cleanup | Recommended |
+| Phase | What it does |
+|---|---|
+| Phase 1 | Delete junk files (.m3u, .log, .cue, .sfv, .bmp, Thumbs.db) |
+| Phase 2 | Reorganize albums to `Artist/YYYY - Album/` format |
+| Phase 3 | Fix disguised artists, merge duplicates, rename subfolders |
+| Phase 4 | Tag audit (artist, album, date, track, title, genre) |
+| Phase 5 | Fix tags A–M and N–Z |
+| Phase 6 | Embed cover art |
+| Phase 7 | Final cleanup |
 
 ## Quick Start
 
