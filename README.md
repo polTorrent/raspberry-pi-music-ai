@@ -14,10 +14,12 @@ This project turns a humble Raspberry Pi into a complete, AI-assisted music ecos
 
 The AI assistant can:
 - Search and download albums from Soulseek with quality ranking (FLAC > MP3 320 > MP3 192)
-- Organize downloaded music into a clean `Artist/Album` folder structure
+- Automatically process downloads: rename, tag, organize into `Artist/YYYY - Album/NN - Song.ext`, and trigger a Navidrome scan — all on a daily cron, no manual intervention
 - Generate weekly personalized recommendations by analyzing your listening history + web searches for new releases
 - Monitor system health (CPU, temperature, RAM, disk, Docker containers, VPN)
+- Monitor memory usage every 6 hours with automatic alerts if RAM < 150 MB or swap > 500 MB
 - Clean up junk files, detect duplicates, and diagnose library issues
+- Normalize library structure: reorganize folders, fix artist/album tags, embed cover art
 - Restart services, apply updates, and perform system maintenance
 
 All controlled via natural language through a Telegram chat.
@@ -40,7 +42,7 @@ All controlled via natural language through a Telegram chat.
                            │
                     ┌──────▼──────┐
                     │  PicoClaw   │  Go binary, Telegram bot
-                    │  (gateway)  │  13 skills, 2 cron jobs
+                    │  (gateway)  │  13 skills, 8 cron jobs
                     └──────┬──────┘
                            │
               ┌────────────┼────────────┐
@@ -90,6 +92,7 @@ raspberry-pi-music-ai/
 ├── docs/
 │   ├── architecture.md        ← System diagram + data flow
 │   ├── setup-guide.md         ← Step-by-step replication guide
+│   ├── system-overview.md     ← Current system state & optimizations
 │   ├── venice-proxy.md        ← Why and how the LLM proxy works
 │   └── picoclaw-skills.md     ← Skill pattern explained
 ├── venice-proxy/
@@ -98,9 +101,12 @@ raspberry-pi-music-ai/
 ├── systemd/
 │   ├── venice-proxy.service   ← systemd unit for the proxy
 │   └── picoclaw-gateway.service ← systemd unit for PicoClaw
+├── scripts/
+│   ├── mem-monitor.sh         ← RAM alert (every 6h)
+│   └── mem-weekly.sh          ← Weekly memory summary (Sundays 9am)
 ├── skills/
 │   ├── pi-maintenance/        ← System monitoring & maintenance
-│   ├── music-library/         ← Library health, duplicates, cleanup
+│   ├── music-library/         ← Library health, duplicates, cleanup, normalization
 │   ├── music-recommendations/ ← Weekly AI-powered recommendations
 │   └── soulseek-music/        ← Soulseek search & download
 ├── config-examples/
@@ -112,6 +118,7 @@ raspberry-pi-music-ai/
 
 - 📖 [Setup Guide](docs/setup-guide.md) — Replicate the entire system from scratch
 - 🏗️ [Architecture](docs/architecture.md) — How the pieces fit together
+- 📊 [System Overview](docs/system-overview.md) — Current system state, optimizations & cron jobs
 - 🔌 [Venice Proxy](docs/venice-proxy.md) — The LLM proxy layer explained
 - 🧩 [PicoClaw Skills](docs/picoclaw-skills.md) — The skill pattern and how to write your own
 
@@ -161,6 +168,68 @@ Example endpoint:
 ```
 GET /rest/search3.view?u=<user>&p=<password>&v=1.16.1&c=myapp&f=json&query=aphex+twin
 ```
+
+## Automation & Optimization
+
+### Download Processing Pipeline (fully automated)
+
+Soulseek downloads are processed and available in Navidrome without any manual intervention:
+
+```
+slskd downloads → 03:00 process & organize → 03:20 Navidrome scan → available in Symfonium
+```
+
+| Time | Cron Job | Description |
+|---|---|---|
+| 03:00 daily | `auto-process-downloads.sh` | Checks `_descarregues` folder, runs `process-downloads.py --confirm` to rename, tag, and move files to `Artist/YYYY - Album/NN - Song.ext` |
+| 03:20 daily | Navidrome scan trigger | Scans the music library for new content, making it available to all clients |
+
+The `process-downloads.py` script:
+- Reads audio tags with mutagen (artist, album, date, track number, title)
+- Creates standardized `Artist/YYYY - Album/` folder structure
+- Renames files to `NN - Title.ext`
+- Handles multi-disc albums (Disc 1, Disc 2, etc.)
+- Merges split CDs into a single album folder
+- Deletes junk files (.cue, .m3u, .log, .sfv, .nfo, .accurip, .lrc)
+- Moves `cover.jpg` to the album folder
+- Changes ownership (chown) so Navidrome can read them
+
+### Memory Optimization
+
+The Raspberry Pi has only 1 GB RAM. The following optimizations were applied:
+
+| Setting | Before | After | Impact |
+|---|---|---|---|
+| Swap size | 100 MB | 1024 MB | More breathing room under memory pressure |
+| Swappiness | 60 (default) | 10 | Prefer RAM over swap, only swap when necessary |
+| slskd memory | ~328 MB | ~257 MB | Restarted to release fragmented memory |
+
+Persistent configuration:
+- Swap: `/etc/dphys-swapfile` (CONF_SWAPSIZE=1024)
+- Swappiness: `/etc/sysctl.d/99-swappiness.conf` (vm.swappiness=10)
+
+> **Note**: Docker memory limits (`mem_limit: 256m`, `memswap_limit: 512m`) are present in the compose file but are **not enforced** on 32-bit kernels without cgroups memory support. They are kept for future use on 64-bit kernels.
+
+### Memory Monitoring
+
+| Schedule | Job | Description |
+|---|---|---|
+| Every 6 hours | `scripts/mem-monitor.sh` | Alerts only if RAM available < 150 MB, swap used > 500 MB, or slskd container > 200 MB |
+| Sundays 09:00 | `scripts/mem-weekly.sh` | Weekly summary with current values + reminder about inactive Docker limits |
+
+### Library Normalization
+
+A multi-phase normalization was performed to clean up the music library:
+
+| Phase | Description | Status |
+|---|---|---|
+| Phase 1 | Delete junk files (.m3u, .log, .cue, .sfv, .bmp, Thumbs.db) | ✅ 255 files deleted |
+| Phase 2 | Reorganize albums to `Artist/YYYY - Album/` format | ✅ 212 albums moved |
+| Phase 3 | Fix disguised artists, merge duplicates, rename subfolders | ✅ 227 albums fixed |
+| Phase 4 | Tag audit (artist, album, date, track, title, genre) | 🔄 Planned |
+| Phase 5 | Fix tags A–M and N–Z | 🔄 In progress |
+| Phase 6 | Embed cover art | 🔄 Planned |
+| Phase 7 | Final cleanup | 🔄 Planned |
 
 ## Quick Start
 
