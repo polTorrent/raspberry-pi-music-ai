@@ -25,7 +25,10 @@ logs/
 Thumbs.db
 desktop.ini
 
-# Temp
+# Temp scripts
 *.tmp
 *.bak
-*.swpdopush*.sh
+*.swp
+dopush*.sh
+cleanup.sh
+copy-scripts.sh
