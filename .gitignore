@@ -1,0 +1,31 @@
+# Secrets & credentials
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+env.sh
+**/env.sh
+
+# Config files with real values
+config.json
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp
+*.tmp
+*.bak
+*.swp

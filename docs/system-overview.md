@@ -19,7 +19,7 @@ Current state of the Raspberry Pi Music AI server as of 2026-06-27.
 | Navidrome | 4533 | Music streaming server (Subsonic API) |
 | slskd | 5030/5031 | Soulseek download client |
 
-- Navidrome user: `patata`
+- Navidrome user: `<your-username>`
 - slskd downloads to: `/mnt/musica/_descarregues`
 - slskd is in a leechers group (no upload requirements)
 
@@ -27,8 +27,8 @@ Current state of the Raspberry Pi Music AI server as of 2026-06-27.
 
 | Access | Address |
 |---|---|
-| LAN | `192.168.1.39` |
-| Remote (Tailscale VPN) | `100.75.250.11` |
+| LAN | `192.168.x.x` (local IP) |
+| Remote (Tailscale VPN) | `100.x.x.x` (Tailscale IP) |
 
 ## Memory Optimization (2026-06-26)
 
