@@ -181,7 +181,7 @@ slskd downloads → 03:00 process & organize → 03:20 Navidrome scan → availa
 
 | Time | Cron Job | Description |
 |---|---|---|
-| 03:00 daily | `auto-process-downloads.sh` | Checks `_descarregues` folder, runs `process-downloads.py --confirm` to rename, tag, and move files to `Artist/YYYY - Album/NN - Song.ext` |
+| 03:00 daily | `auto-process-downloads.sh` | Checks download folder, runs `process-downloads.py --confirm` to rename, tag, and move files to `Artist/YYYY - Album/NN - Song.ext` |
 | 03:20 daily | Navidrome scan trigger | Scans the music library for new content, making it available to all clients |
 
 The `process-downloads.py` script:
@@ -196,19 +196,18 @@ The `process-downloads.py` script:
 
 ### Memory Optimization
 
-The Raspberry Pi has only 1 GB RAM. The following optimizations were applied:
+The Raspberry Pi has limited RAM (1 GB). The following optimizations are recommended:
 
 | Setting | Before | After | Impact |
 |---|---|---|---|
 | Swap size | 100 MB | 1024 MB | More breathing room under memory pressure |
 | Swappiness | 60 (default) | 10 | Prefer RAM over swap, only swap when necessary |
-| slskd memory | ~328 MB | ~257 MB | Restarted to release fragmented memory |
 
 Persistent configuration:
 - Swap: `/etc/dphys-swapfile` (CONF_SWAPSIZE=1024)
 - Swappiness: `/etc/sysctl.d/99-swappiness.conf` (vm.swappiness=10)
 
-> **Note**: Docker memory limits (`mem_limit: 256m`, `memswap_limit: 512m`) are present in the compose file but are **not enforced** on 32-bit kernels without cgroups memory support. They are kept for future use on 64-bit kernels.
+> **Note**: Docker memory limits (`mem_limit: 256m`, `memswap_limit: 512m`) in the compose file are **not enforced** on 32-bit kernels without cgroups memory support. They are kept for future use on 64-bit kernels.
 
 ### Memory Monitoring
 
@@ -219,17 +218,17 @@ Persistent configuration:
 
 ### Library Normalization
 
-A multi-phase normalization was performed to clean up the music library:
+A multi-phase normalization approach to clean up the music library:
 
-| Phase | Description | Status |
+| Phase | Description | Example |
 |---|---|---|
-| Phase 1 | Delete junk files (.m3u, .log, .cue, .sfv, .bmp, Thumbs.db) | ✅ 255 files deleted |
-| Phase 2 | Reorganize albums to `Artist/YYYY - Album/` format | ✅ 212 albums moved |
-| Phase 3 | Fix disguised artists, merge duplicates, rename subfolders | ✅ 227 albums fixed |
-| Phase 4 | Tag audit (artist, album, date, track, title, genre) | 🔄 Planned |
-| Phase 5 | Fix tags A–M and N–Z | 🔄 In progress |
-| Phase 6 | Embed cover art | 🔄 Planned |
-| Phase 7 | Final cleanup | 🔄 Planned |
+| Phase 1 | Delete junk files (.m3u, .log, .cue, .sfv, .bmp, Thumbs.db) | e.g. 250+ files removed |
+| Phase 2 | Reorganize albums to `Artist/YYYY - Album/` format | e.g. 200+ albums moved |
+| Phase 3 | Fix disguised artists, merge duplicates, rename subfolders | e.g. 200+ albums fixed |
+| Phase 4 | Tag audit (artist, album, date, track, title, genre) | Recommended |
+| Phase 5 | Fix tags A–M and N–Z | Recommended |
+| Phase 6 | Embed cover art | Recommended |
+| Phase 7 | Final cleanup | Recommended |
 
 ## Quick Start
 
@@ -264,13 +263,13 @@ See the [full setup guide](docs/setup-guide.md) for detailed instructions.
 
 ## Library Stats (example deployment)
 
-| Metric | Value |
+| Metric | Example Value |
 |---|---|
-| Audio files | ~11,500 |
-| Albums | ~1,500 |
-| Artists | ~1,700 |
-| Total size | ~170 GB |
-| Scrobbles tracked | ~2,000 |
+| Audio files | ~10,000+ |
+| Albums | ~1,000+ |
+| Artists | ~300+ |
+| Total size | ~150 GB+ |
+| Scrobbles tracked | ~1,500+ |
 
 ## License
 
