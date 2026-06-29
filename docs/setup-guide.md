@@ -230,10 +230,10 @@ chmod 600 ~/.picoclaw/workspace/skills/soulseek-music/scripts/env.sh
 
 1. Send a message to your Telegram bot.
 2. Try these commands:
-   - "Estat del sistema" — should report CPU, RAM, disk, Docker, Tailscale
-   - "Cerca música: Aphex Twin Selected Ambient Works" — should return Soulseek results
-   - "Recomanacions musicals" — should generate personalized recommendations
-   - "Com està la biblioteca?" — should run a library health diagnostic
+   - "System status" — should report CPU, RAM, disk, Docker, Tailscale
+   - "Search music: [artist] [album]" — should return Soulseek search results ranked by quality
+   - "Music recommendations" — should generate personalized recommendations
+   - "How is the library?" — should run a library health diagnostic
 
 ## Step 11: Set Up Cron Jobs (Optional)
 
