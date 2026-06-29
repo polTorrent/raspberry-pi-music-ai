@@ -42,7 +42,7 @@ All controlled via natural language through a Telegram chat.
                            │
                     ┌──────▼──────┐
                     │  PicoClaw   │  Go binary, Telegram bot
-                    │  (gateway)  │  13 skills, 8 cron jobs
+                    │  (gateway)  │  11 skills, 7 cron jobs
                     └──────┬──────┘
                            │
               ┌────────────┼────────────┐
@@ -83,7 +83,7 @@ All controlled via natural language through a Telegram chat.
 |---|---|---|
 | Navidrome | Direct (LAN / Tailscale) | Low-latency streaming, no VPN overhead |
 | slskd | Via Gluetun → ProtonVPN | Hide IP from Soulseek peers |
-| PicoClaw | Direct (outbound HTTPS to Venice.ai) | API calls, no VPN needed |
+| PicoClaw | Via Venice Proxy (localhost:8899) → Venice.ai | LLM API calls routed through local proxy |
 | Tailscale | Direct (WireGuard mesh) | Remote admin access |
 
 For a detailed architecture diagram, see [docs/architecture.md](docs/architecture.md).
@@ -122,7 +122,7 @@ The committed service files contain only comments with instructions on how to se
 | Layer | Technology |
 |---|---|
 | Hardware | Raspberry Pi (armv7l, 1 GB RAM) |
-| OS | Raspbian Bullseye (Linux 6.1) |
+| OS | Raspbian Bullseye (Linux 6.1.21-v7+, armv7l) |
 | Container runtime | Docker + Docker Compose |
 | Music server | Navidrome (port 4533) |
 | Download client | slskd / Soulseek (ports 5030/5031) |
@@ -222,6 +222,18 @@ GET /rest/search3.view?u=<user>&p=<password>&v=1.16.1&c=myapp&f=json&query=aphex
 
 ## Automation & Optimization
 
+PicoClaw runs 7 cron jobs (6 recurring + 1 one-time):
+
+| Schedule | Job | Description |
+|---|---|---|
+| 03:00 daily | `auto-process-downloads.sh` | Process & organize new downloads into `Artist/YYYY - Album/NN - Song.ext` |
+| 03:20 daily | Navidrome scan trigger | Scans library for new content, makes it available to clients |
+| 04:00 daily | Navidrome backup | Daily backup of Navidrome database |
+| Every 6 hours | `scripts/mem-monitor.sh` | Alerts if RAM < 150 MB, swap > 500 MB, or slskd > 200 MB |
+| Sundays 09:00 | `scripts/mem-weekly.sh` | Weekly memory summary + Docker limits reminder |
+| Mondays 10:00 | Music recommendations | Analyzes listening history + web searches for new releases |
+| One-time | Proxy stability check | Verifies venice-proxy stability (auto-deletes after run) |
+
 ### Download Processing Pipeline (fully automated)
 
 Soulseek downloads are processed and available in Navidrome without any manual intervention:
@@ -229,11 +241,6 @@ Soulseek downloads are processed and available in Navidrome without any manual i
 ```
 slskd downloads → 03:00 process & organize → 03:20 Navidrome scan → available in Symfonium
 ```
-
-| Time | Cron Job | Description |
-|---|---|---|
-| 03:00 daily | `auto-process-downloads.sh` | Checks download folder, runs `process-downloads.py --confirm` to rename, tag, and move files to `Artist/YYYY - Album/NN - Song.ext` |
-| 03:20 daily | Navidrome scan trigger | Scans the music library for new content, making it available to all clients |
 
 The `process-downloads.py` script:
 - Reads audio tags with mutagen (artist, album, date, track number, title)
@@ -262,10 +269,7 @@ Persistent configuration:
 
 ### Memory Monitoring
 
-| Schedule | Job | Description |
-|---|---|---|
-| Every 6 hours | `scripts/mem-monitor.sh` | Alerts only if RAM available < 150 MB, swap used > 500 MB, or slskd container > 200 MB |
-| Sundays 09:00 | `scripts/mem-weekly.sh` | Weekly summary with current values + reminder about inactive Docker limits |
+See the cron table above — memory alerts run every 6 hours and a weekly summary is generated on Sundays at 09:00.
 
 ### Library Normalization
 
@@ -300,8 +304,13 @@ The bot can clean up and standardize your music library through these phases:
    ```
 7. **Deploy the Venice proxy** as a systemd service:
    ```bash
-   sudo cp venice-proxy/venice-proxy.py /usr/local/bin/
    sudo cp systemd/venice-proxy.service /etc/systemd/system/
+   # Copy the proxy script to its runtime location:
+   cp venice-proxy/venice-proxy.py /home/pi/venice-proxy.py
+   # Set your Venice API key via systemd override (do NOT edit the committed file):
+   sudo systemctl edit venice-proxy
+   #   → add: [Service]
+   #           Environment="VENICE_API_KEY=your-key-here"
    sudo systemctl enable --now venice-proxy
    ```
 8. **Install skills** into the PicoClaw workspace:
