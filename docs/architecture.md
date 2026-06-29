@@ -54,13 +54,19 @@
 │              │    ┌──────────────────────────────────────┐              │
 │              │    │       Docker Compose network          │              │
 │              │    │                                       │              │
-│              │    │  ┌────────────┐   ┌──────────────┐   │              │
-│              │    │  │ Navidrome   │   │   slskd      │   │              │
-│              │    │  │ :4533       │   │ :5030/:5031  │   │              │
-│              │    │  │             │   │              │   │              │
-│              │    │  │ Music       │   │ Soulseek     │   │              │
-│              │    │  │ streaming   │   │ client +     │   │              │
-│              │    │  │ SQLite DB   │   │ REST API     │   │              │
+│              │    │  ┌────────────┐                      │              │
+│              │    │  │ Gluetun    │  ProtonVPN WireGuard  │              │
+│              │    │  │ (VPN)      │  Kill switch built-in │              │
+│              │    │  └─────┬──────┘                      │              │
+│              │    │        │ network_mode: service:gluetun│              │
+│              │    │  ┌─────▼──────┐   ┌──────────────┐   │              │
+│              │    │  │   slskd    │   │  Navidrome   │   │              │
+│              │    │  │ :5030/5031 │   │  :4533        │   │              │
+│              │    │  │            │   │              │   │              │
+│              │    │  │ Soulseek   │   │ Music stream │   │              │
+│              │    │  │ client +   │   │ SQLite DB    │   │              │
+│              │    │  │ REST API   │   │ (direct, no  │   │              │
+│              │    │  │ (via VPN)  │   │  VPN)        │   │              │
 │              │    │  └──────┬─────┘   └──────┬───────┘   │              │
 │              │    └─────────┼────────────────┼───────────┘              │
 │              │              │                │                          │
@@ -168,8 +174,9 @@ The client never touches the Pi's filesystem directly. All communication goes th
 |---|---|
 | **PicoClaw** | Orchestration. Reads messages, calls LLM, executes tools, manages skills, runs cron jobs |
 | **Venice Proxy** | Security layer. Holds the API key, forwards requests to Venice.ai, keeps the key out of PicoClaw config |
+| **Gluetun** | VPN client. WireGuard tunnel to ProtonVPN. Routes slskd traffic, built-in kill switch |
 | **Navidrome** | Music streaming server. SQLite DB stores scrobbles, ratings, library metadata. Scans every 15 min |
-| **slskd** | Soulseek client. REST API for search/download. Downloads to staging folder |
+| **slskd** | Soulseek client. REST API for search/download. Downloads to staging folder. Traffic routed via Gluetun VPN |
 | **Tailscale** | VPN. Enables remote access to Navidrome web UI, slskd web UI, and SSH from any device |
 | **Symfonium** | Subsonic client (Android). Streams music from Navidrome, caches offline, scrobbles play counts back. Also the primary listening interface |
 | **Subsonic API** | Standard music streaming protocol. Navidrome implements it natively — any compatible client can connect with user + password, no extra keys |
@@ -178,8 +185,10 @@ The client never touches the Pi's filesystem directly. All communication goes th
 ## Security Model
 
 - **No ports exposed to the public internet.** All access is via Tailscale VPN or LAN.
+- **slskd traffic routed through Gluetun VPN** — Soulseek peers only see the VPN exit IP.
+- **Kill switch** — if the VPN tunnel drops, Gluetun blocks all outbound traffic from the container, preventing IP leaks.
+- **Navidrome runs direct** (not through VPN) for low-latency streaming via LAN/Tailscale.
 - **Venice API key** is stored only in the proxy script, never in PicoClaw config or environment.
 - **Telegram bot token** is passed via systemd `Environment=` directive, not hardcoded.
-- **slskd API key** is stored in an environment file sourced before script execution.
 - **PicoClaw workspace** is restricted — `allow_read_outside_workspace: false` prevents arbitrary file access.
 - **Navidrome** mounts the music directory as read-only (`/music:ro`).
