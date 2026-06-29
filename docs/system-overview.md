@@ -14,20 +14,106 @@ Example configuration of the Raspberry Pi Music AI server.
 
 ## Services (Docker Compose)
 
-| Service | Port | Purpose |
-|---|---|---|
-| Navidrome | 4533 | Music streaming server (Subsonic API) |
-| slskd | 5030/5031 | Soulseek download client |
+| Service | Port | Network | Purpose |
+|---|---|---|---|
+| Navidrome | 4533 | Direct (LAN/Tailscale) | Music streaming server (Subsonic API) |
+| slskd | 5030/5031 | Via Gluetun VPN | Soulseek download client |
+| Gluetun | — | VPN tunnel | ProtonVPN WireGuard gateway for slskd |
 
 - Navidrome user: `<your-username>`
 - slskd downloads to a configurable download folder
+- Only slskd traffic is routed through the VPN. Navidrome runs on the direct network for low-latency streaming.
 
-## Network
+## Network Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Telegram Chat                         │
+│                      (you ↔ PicoClaw)                         │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │  PicoClaw   │  Go binary, Telegram bot
+                    │  (gateway)  │  13 skills, 8 cron jobs
+                    └──────┬──────┘
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+       ┌──────▼──────┐    │     ┌──────▼──────┐
+       │ Venice Proxy│    │     │  Shell/Py   │
+       │ (Python)    │    │     │  Scripts     │
+       │ :8899       │    │     │ (skills)    │
+       └──────┬──────┘    │     └──────┬──────┘
+              │            │            │
+       ┌──────▼──────┐    │     ┌──────▼──────┐
+       │ Venice.ai   │    │     │ Docker       │
+       │ API (LLM)   │    │     │ ┌─────────┐  │
+       │ GLM 5.2     │    │     │ │Gluetun  │  │
+       └─────────────┘    │     │ │(VPN)    │  │
+                          │     │ └────┬────┘  │
+                          │     │      │ net   │
+                          │     │ ┌────▼────┐  │
+                          │     │ │ slskd   │  │
+                          │     │ │(Soulseek)│  │
+                          │     │ └─────────┘  │
+                          │     │ ┌─────────┐  │
+                          │     │ │Navidrome│  │
+                          │     │ │(direct) │  │
+                          │     │ └─────────┘  │
+                          │     └─────────────┘
+                          │
+                   ┌──────▼──────┐
+                   │ Tailscale   │
+                   │ VPN (remote │
+                   │ access)     │
+                   └─────────────┘
+```
+
+### Traffic routing
+
+| Service | Route | Why |
+|---|---|---|
+| Navidrome | Direct (LAN / Tailscale) | Low-latency streaming, no VPN overhead |
+| slskd | Via Gluetun → ProtonVPN | Hide IP from Soulseek peers |
+| PicoClaw | Direct (outbound HTTPS to Venice.ai) | API calls, no VPN needed |
+| Tailscale | Direct (WireGuard mesh) | Remote admin access |
+
+## Security & Privacy
+
+### ProtonVPN WireGuard via Gluetun
+
+- **Gluetun** is a lightweight VPN client container that establishes a WireGuard tunnel to ProtonVPN.
+- **slskd** uses `network_mode: "service:gluetun"`, so all its traffic (Soulseek peer connections, downloads) goes through the VPN tunnel.
+- **Navidrome** runs on the host network directly — it is NOT routed through the VPN, ensuring fast local and remote streaming via Tailscale.
+- The VPN exit IP is the only IP visible to Soulseek peers.
+
+### Kill switch
+
+- Gluetun includes a built-in **kill switch**: if the VPN tunnel drops, all outbound traffic from the container is blocked.
+- This prevents slskd from leaking your real IP address if the VPN connection is interrupted.
+- Configured via Gluetun's firewall rules (`FIREWALL_OUTBOUND_SUBNETS` restricts traffic to the tunnel).
+
+### Credential management
+
+- VPN credentials (WireGuard private key, server selection) are stored in a `.env` file next to `docker-compose.yml`.
+- The `.env` file is listed in `.gitignore` and is **never** committed to the repository.
+- A `.env.example` template with placeholders is provided in `config-examples/`.
+- Credentials are entered manually via SSH — never through Telegram or any chat channel.
+
+| Secret | Location | Committed? |
+|---|---|---|
+| WireGuard private key | `.env` | ❌ No (gitignored) |
+| Navidrome credentials | `docker-compose.yml` | ❌ No (gitignored) |
+| PicoClaw config | `~/.picoclaw/config.json` | ❌ No (outside repo) |
+| Venice API key | systemd env / proxy config | ❌ No (outside repo) |
+
+## Network Access
 
 | Access | Address |
 |---|---|
 | LAN | `<your-pi-local-ip>` |
 | Remote (Tailscale VPN) | `<your-tailscale-ip>` |
+| VPN exit IP (Soulseek peers see this) | `<your-protonvpn-exit-ip>` |
 
 ## Memory Optimization
 
@@ -66,6 +152,12 @@ slskd downloads → 03:00 process & organize → 03:20 Navidrome scan → availa
 | Schedule | Description |
 |---|---|
 | Mondays 10:00 | Analyzes Navidrome listening history + web search for new releases → personalized weekly recommendations |
+
+### Backup
+
+| Schedule | Script | Description |
+|---|---|---|
+| Daily 04:00 | `backup-navidrome.sh` | Backs up navidrome.db, slskd.db, and docker-compose.yml to `/mnt/musica/_backups/`. Keeps last 7 backups, rotates older. |
 
 ## Music Library Normalization
 

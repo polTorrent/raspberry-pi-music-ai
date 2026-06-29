@@ -35,10 +35,10 @@ All controlled via natural language through a Telegram chat.
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Telegram Chat                        │
-│                    (you ↔ PicoClaw)                       │
-└──────────────────────────┬──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        Telegram Chat                         │
+│                      (you ↔ PicoClaw)                         │
+└──────────────────────────┬──────────────────────────────────┘
                            │
                     ┌──────▼──────┐
                     │  PicoClaw   │  Go binary, Telegram bot
@@ -49,23 +49,72 @@ All controlled via natural language through a Telegram chat.
               │            │            │
        ┌──────▼──────┐    │     ┌──────▼──────┐
        │ Venice Proxy│    │     │  Shell/Py   │
-       │ (Python)    │    │     │  Scripts    │
+       │ (Python)    │    │     │  Scripts     │
        │ :8899       │    │     │ (skills)    │
        └──────┬──────┘    │     └──────┬──────┘
               │            │            │
        ┌──────▼──────┐    │     ┌──────▼──────┐
-       │ Venice.ai   │    │     │ Docker      │
-       │ API (LLM)   │    │     │ Navidrome   │
-       │ GLM 5.2     │    │     │ slskd       │
-       └─────────────┘    │     └─────────────┘
+       │ Venice.ai   │    │     │ Docker       │
+       │ API (LLM)   │    │     │ ┌─────────┐  │
+       │ GLM 5.2     │    │     │ │Gluetun  │  │
+       └─────────────┘    │     │ │(VPN)    │  │
+                          │     │ └────┬────┘  │
+                          │     │      │ net   │
+                          │     │ ┌────▼────┐  │
+                          │     │ │ slskd   │  │
+                          │     │ │(Soulseek)│  │
+                          │     │ └─────────┘  │
+                          │     │ ┌─────────┐  │
+                          │     │ │Navidrome│  │
+                          │     │ │(direct) │  │
+                          │     │ └─────────┘  │
+                          │     └─────────────┘
                           │
                    ┌──────▼──────┐
                    │ Tailscale   │
-                   │ VPN         │
+                   │ VPN (remote │
+                   │ access)     │
                    └─────────────┘
 ```
 
+### Traffic routing
+
+| Service | Route | Why |
+|---|---|---|
+| Navidrome | Direct (LAN / Tailscale) | Low-latency streaming, no VPN overhead |
+| slskd | Via Gluetun → ProtonVPN | Hide IP from Soulseek peers |
+| PicoClaw | Direct (outbound HTTPS to Venice.ai) | API calls, no VPN needed |
+| Tailscale | Direct (WireGuard mesh) | Remote admin access |
+
 For a detailed architecture diagram, see [docs/architecture.md](docs/architecture.md).
+
+## Security & Privacy
+
+### ProtonVPN WireGuard via Gluetun
+
+- **Gluetun** is a lightweight VPN client container that establishes a WireGuard tunnel to ProtonVPN.
+- **slskd** uses `network_mode: "service:gluetun"`, so all its traffic (Soulseek peer connections, downloads) goes through the VPN tunnel.
+- **Navidrome** runs on the host network directly — it is NOT routed through the VPN, ensuring fast local and remote streaming via Tailscale.
+- The VPN exit IP is the only IP visible to Soulseek peers.
+
+### Kill switch
+
+- Gluetun includes a built-in **kill switch**: if the VPN tunnel drops, all outbound traffic from the container is blocked.
+- This prevents slskd from leaking your real IP address if the VPN connection is interrupted.
+
+### Credential management
+
+- VPN credentials (WireGuard private key, server selection) are stored in a `.env` file next to `docker-compose.yml`.
+- The `.env` file is listed in `.gitignore` and is **never** committed to the repository.
+- A `.env.example` template with placeholders is provided in `config-examples/`.
+- Credentials are entered manually via SSH — never through Telegram or any chat channel.
+
+| Secret | Location | Committed? |
+|---|---|---|
+| WireGuard private key | `.env` | ❌ No (gitignored) |
+| Navidrome credentials | `docker-compose.yml` | ❌ No (gitignored) |
+| PicoClaw config | `~/.picoclaw/config.json` | ❌ No (outside repo) |
+| Venice API key | systemd env / proxy config | ❌ No (outside repo) |
 
 ## Tech Stack
 
@@ -78,7 +127,8 @@ For a detailed architecture diagram, see [docs/architecture.md](docs/architectur
 | Download client | slskd / Soulseek (ports 5030/5031) |
 | AI assistant | PicoClaw 0.2.x (Go, Telegram bot) |
 | LLM provider | Venice.ai (GLM 5.2) via local proxy |
-| VPN | Tailscale (zero-config WireGuard) |
+| VPN (Soulseek) | ProtonVPN WireGuard via Gluetun (Docker) |
+| VPN (remote access) | Tailscale (zero-config WireGuard) |
 | Mobile client | Symfonium (Android, Subsonic API) |
 | Storage | 30 GB microSD (OS) + 1.8 TB USB drive (music, ext4) |
 | Scripting | Python 3.9, Bash |
@@ -111,7 +161,8 @@ raspberry-pi-music-ai/
 │   └── soulseek-music/        ← Soulseek search & download
 ├── config-examples/
 │   ├── config.example.json    ← PicoClaw config (placeholders only)
-│   └── docker-compose.example.yml ← Navidrome + slskd compose file
+│   ├── docker-compose.example.yml ← Navidrome + slskd + Gluetun VPN compose file
+│   └── .env.example           ← VPN credentials template (placeholders only)
 ```
 
 ## Documentation
@@ -235,10 +286,11 @@ The bot can clean up and standardize your music library through these phases:
 1. **Flash Raspbian Bullseye** on a microSD card and boot your Pi.
 2. **Mount an external USB drive** for music storage (ext4 recommended).
 3. **Install Docker and Docker Compose.**
-4. **Deploy Navidrome + slskd** using the example compose file:
+4. **Deploy Navidrome + slskd + Gluetun VPN** using the example compose file:
    ```bash
    cp config-examples/docker-compose.example.yml ~/navidrome/docker-compose.yml
-   # Edit paths and credentials, then:
+   cp config-examples/.env.example ~/navidrome/.env
+   # Edit docker-compose.yml paths, then fill .env with your VPN credentials
    cd ~/navidrome && docker compose up -d
    ```
 5. **Install Tailscale** and authenticate your Pi.
@@ -279,7 +331,9 @@ MIT — see [LICENSE](LICENSE).
 
 - [Navidrome](https://github.com/navidrome/navidrome) — the music server
 - [slskd](https://github.com/slskd/slskd) — the Soulseek client
-- [Tailscale](https://tailscale.com/) — the VPN
+- [Gluetun](https://github.com/qdm12/gluetun) — the VPN client container
+- [ProtonVPN](https://protonvpn.com/) — the WireGuard VPN provider
+- [Tailscale](https://tailscale.com/) — the remote-access VPN
 - [PicoClaw](https://picoclaw.io/) — the AI assistant framework
 - [Venice.ai](https://venice.ai/) — the LLM inference provider
 - [Symfonium](https://symfonium.app/) — the Subsonic client for Android
