@@ -14,7 +14,7 @@ services:
     environment:
       VPN_SERVICE_PROVIDER: protonvpn
       VPN_TYPE: wireguard
-      # Credentials loaded from .env (never committed to git)
+      # Credentials loaded from environment variables
       WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
       # Server selection — use either SERVER_COUNTRIES or SERVER_NAMES
       # SERVER_COUNTRIES is simpler (e.g. "Netherlands")
@@ -78,7 +78,3 @@ services:
 # Kill switch: Gluetun includes a built-in kill switch. If the VPN
 # tunnel drops, all outbound traffic from the container is blocked,
 # preventing slskd from leaking your real IP address.
-#
-# Credential management: Copy .env.example to .env and fill with your
-# ProtonVPN WireGuard credentials. The .env file is gitignored and
-# never committed to the repository.

@@ -93,20 +93,6 @@ Example configuration of the Raspberry Pi Music AI server.
 - This prevents slskd from leaking your real IP address if the VPN connection is interrupted.
 - Configured via Gluetun's firewall rules (`FIREWALL_OUTBOUND_SUBNETS` restricts traffic to the tunnel).
 
-### Credential management
-
-- VPN credentials (WireGuard private key, server selection) are stored in a `.env` file next to `docker-compose.yml`.
-- The `.env` file is listed in `.gitignore` and is **never** committed to the repository.
-- A `.env.example` template with placeholders is provided in `config-examples/`.
-- Credentials are entered manually via SSH — never through Telegram or any chat channel.
-
-| Secret | Location | Committed? |
-|---|---|---|
-| WireGuard private key | `.env` | ❌ No (gitignored) |
-| Navidrome credentials | `docker-compose.yml` | ❌ No (gitignored) |
-| PicoClaw config | `~/.picoclaw/config.json` | ❌ No (outside repo) |
-| Venice API key | systemd env / proxy config | ❌ No (outside repo) |
-
 ## Network Access
 
 | Access | Address |

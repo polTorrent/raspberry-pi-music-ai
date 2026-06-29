@@ -101,18 +101,6 @@ For a detailed architecture diagram, see [docs/architecture.md](docs/architectur
 
 - Gluetun includes a built-in **kill switch**: if the VPN tunnel drops, all outbound traffic from the container is blocked.
 - This prevents slskd from leaking your real IP address if the VPN connection is interrupted.
-
-### Credential management
-
-- VPN credentials (WireGuard private key, server selection) are stored in a `.env` file next to `docker-compose.yml`.
-- The `.env` file is listed in `.gitignore` and is **never** committed to the repository.
-- A `.env.example` template with placeholders is provided in `config-examples/`.
-- Credentials are entered manually via SSH — never through Telegram or any chat channel.
-
-| Secret | Location | Committed? |
-|---|---|---|
-| WireGuard private key | `.env` | ❌ No (gitignored) |
-| Navidrome credentials | `docker-compose.yml` | ❌ No (gitignored) |
 | PicoClaw config | `~/.picoclaw/config.json` | ❌ No (outside repo) |
 | Venice API key | systemd env / proxy config | ❌ No (outside repo) |
 
@@ -161,8 +149,7 @@ raspberry-pi-music-ai/
 │   └── soulseek-music/        ← Soulseek search & download
 ├── config-examples/
 │   ├── config.example.json    ← PicoClaw config (placeholders only)
-│   ├── docker-compose.example.yml ← Navidrome + slskd + Gluetun VPN compose file
-│   └── .env.example           ← VPN credentials template (placeholders only)
+│   └── docker-compose.example.yml ← Navidrome + slskd + Gluetun VPN compose file
 ```
 
 ## Documentation
@@ -289,8 +276,7 @@ The bot can clean up and standardize your music library through these phases:
 4. **Deploy Navidrome + slskd + Gluetun VPN** using the example compose file:
    ```bash
    cp config-examples/docker-compose.example.yml ~/navidrome/docker-compose.yml
-   cp config-examples/.env.example ~/navidrome/.env
-   # Edit docker-compose.yml paths, then fill .env with your VPN credentials
+   # Edit paths and add your VPN configuration
    cd ~/navidrome && docker compose up -d
    ```
 5. **Install Tailscale** and authenticate your Pi.
