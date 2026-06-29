@@ -165,20 +165,18 @@ The proxy is a tiny Python script that injects the Venice API key into LLM reque
    sudo cp venice-proxy/venice-proxy.py /usr/local/bin/venice-proxy.py
    ```
 
-2. Edit it to add your Venice API key:
-   ```bash
-   sudo nano /usr/local/bin/venice-proxy.py
-   # Or better: set it via environment variable
-   ```
-
-3. Install the systemd service:
+2. Install the systemd service and set the API key via override:
    ```bash
    sudo cp systemd/venice-proxy.service /etc/systemd/system/
+   sudo systemctl edit venice-proxy.service
+   # In the editor, add:
+   # [Service]
+   # Environment="VENICE_API_KEY=sk-venice-xxxx"
    sudo systemctl daemon-reload
    sudo systemctl enable --now venice-proxy
    ```
 
-4. Verify:
+3. Verify:
    ```bash
    curl http://localhost:8899/health  # or just check the service
    sudo systemctl status venice-proxy
@@ -208,11 +206,12 @@ chmod 600 ~/.picoclaw/workspace/skills/soulseek-music/scripts/env.sh
    sudo cp systemd/picoclaw-gateway.service /etc/systemd/system/
    ```
 
-2. Edit to set your Telegram token:
+2. Set your Telegram token via systemd override (do NOT edit the committed file):
    ```bash
-   sudo nano /etc/systemd/system/picoclaw-gateway.service
-   # Replace the placeholder in Environment= with your actual token
-   # Or use an EnvironmentFile= pointing to a secure file
+   sudo systemctl edit picoclaw-gateway.service
+   # In the editor, add:
+   # [Service]
+   # Environment="PICOCLAW_CHANNELS_TELEGRAM_TOKEN=your-telegram-bot-token"
    ```
 
 3. Enable and start:

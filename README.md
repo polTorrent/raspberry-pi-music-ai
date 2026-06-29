@@ -101,8 +101,21 @@ For a detailed architecture diagram, see [docs/architecture.md](docs/architectur
 
 - Gluetun includes a built-in **kill switch**: if the VPN tunnel drops, all outbound traffic from the container is blocked.
 - This prevents slskd from leaking your real IP address if the VPN connection is interrupted.
-| PicoClaw config | `~/.picoclaw/config.json` | ❌ No (outside repo) |
-| Venice API key | systemd env / proxy config | ❌ No (outside repo) |
+
+### Secrets Management
+
+All secrets are kept out of the repository. None are hardcoded in any committed file.
+
+| Secret | Where it lives | In repo? |
+|---|---|---|
+| VPN WireGuard private key | `.env` (gitignored, loaded by Docker Compose) | ❌ No |
+| Venice API key | systemd drop-in override (`systemctl edit venice-proxy.service`) | ❌ No |
+| Telegram bot token | systemd drop-in override (`systemctl edit picoclaw-gateway.service`) | ❌ No |
+| slskd API key | `env.sh` (gitignored, sourced by skill scripts) | ❌ No |
+| Navidrome credentials | Navidrome's own database (not in repo) | ❌ No |
+| PicoClaw config | `~/.picoclaw/config.json` (outside repo) | ❌ No |
+
+The committed service files contain only comments with instructions on how to set up the overrides. See [`.env.example`](config-examples/.env.example) for the full list of environment variables.
 
 ## Tech Stack
 

@@ -13,23 +13,27 @@ PicoClaw needs to call an LLM API. If the API key were stored in PicoClaw's conf
    sudo cp venice-proxy.py /usr/local/bin/venice-proxy.py
    ```
 
-2. Set the API key. Choose one method:
+2. Set the API key via systemd override (recommended):
 
-   **Option A — systemd Environment (recommended):**
+   ```bash
+   sudo systemctl edit venice-proxy.service
+   ```
+   In the editor, add:
    ```ini
-   # In the .service file:
+   [Service]
    Environment="VENICE_API_KEY=your-key-here"
    ```
+   Then restart:
+   ```bash
+   sudo systemctl restart venice-proxy
+   ```
 
-   **Option B — Environment file (more secure):**
+   Alternatively, use an environment file:
    ```bash
    echo 'VENICE_API_KEY=your-key-here' | sudo tee /etc/venice-proxy.env
    sudo chmod 600 /etc/venice-proxy.env
    ```
-   ```ini
-   # In the .service file:
-   EnvironmentFile=/etc/venice-proxy.env
-   ```
+   And uncomment `EnvironmentFile=/etc/venice-proxy.env` in the service file.
 
 3. Install the systemd service:
    ```bash

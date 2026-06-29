@@ -6,6 +6,7 @@
 .env
 env.sh
 **/env.sh
+secrets/
 
 # Config files with real values
 config.json

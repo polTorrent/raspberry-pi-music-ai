@@ -5,9 +5,14 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-# Set your Venice API key here, or use an EnvironmentFile for better security:
-# EnvironmentFile=/etc/venice-proxy.env
-Environment="VENICE_API_KEY=your-venice-api-key-here"
+# The API key is set via a systemd drop-in override, NOT in this file.
+# To configure:
+#   sudo systemctl edit venice-proxy.service
+# Then add:
+#   [Service]
+#   Environment="VENICE_API_KEY=sk-venice-xxxx"
+# Or use an EnvironmentFile:
+#   EnvironmentFile=/etc/venice-proxy.env
 ExecStart=/usr/bin/python3 /usr/local/bin/venice-proxy.py
 Restart=always
 RestartSec=5

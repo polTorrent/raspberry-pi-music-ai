@@ -6,9 +6,14 @@ Wants=venice-proxy.service
 [Service]
 Type=simple
 User=pi
-# Set your Telegram bot token here, or use an EnvironmentFile for better security:
-# EnvironmentFile=/etc/picoclaw.env
-Environment="PICOCLAW_CHANNELS_TELEGRAM_TOKEN=your-telegram-bot-token-here"
+# The Telegram bot token is set via a systemd drop-in override, NOT in this file.
+# To configure:
+#   sudo systemctl edit picoclaw-gateway.service
+# Then add:
+#   [Service]
+#   Environment="PICOCLAW_CHANNELS_TELEGRAM_TOKEN=your-telegram-bot-token"
+# Or use an EnvironmentFile:
+#   EnvironmentFile=/etc/picoclaw.env
 ExecStart=/usr/local/bin/picoclaw gateway
 Restart=always
 RestartSec=5

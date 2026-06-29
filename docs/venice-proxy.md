@@ -107,7 +107,15 @@ Example for a local LLM (Ollama):
 
 ## Deployment
 
-The proxy runs as a systemd service:
+The proxy runs as a systemd service. The API key is **not** stored in the committed service file — it is injected via a systemd drop-in override:
+
+```ini
+# /etc/systemd/system/venice-proxy.service.d/override.conf
+[Service]
+Environment="VENICE_API_KEY=sk-venice-xxxx"
+```
+
+The base service file (committed to the repo) does NOT contain any key:
 
 ```ini
 [Unit]
@@ -117,7 +125,6 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-Environment="VENICE_API_KEY=your-key-here"
 ExecStart=/usr/bin/python3 /usr/local/bin/venice-proxy.py
 Restart=always
 RestartSec=5
@@ -126,7 +133,16 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> **Tip**: For better security, use an `EnvironmentFile=` pointing to a file with restricted permissions (`chmod 600`) instead of hardcoding the key in the service file.
+To set up the override:
+```bash
+sudo systemctl edit venice-proxy.service
+# In the editor, add:
+#   [Service]
+#   Environment="VENICE_API_KEY=sk-venice-xxxx"
+sudo systemctl restart venice-proxy
+```
+
+> **Tip**: Alternatively, use `EnvironmentFile=/etc/venice-proxy.env` with `chmod 600` for the same result. The key point is: the committed service file must never contain a real key.
 
 ## PicoClaw configuration
 
